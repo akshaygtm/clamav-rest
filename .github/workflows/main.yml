@@ -1,0 +1,39 @@
+name: Build and Push Docker image -> Jfrog
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-docker-image:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v2
+
+      - name: "Read Vault Secrets"
+        uses: LexisNexis-RBA/clink-gh-action-vault@v1.0
+        with:
+          vault_addr: ${{ secrets.VAULT_ADDR }}
+          vault_role_id: ${{ secrets.NONPROD_VAULT_ROLE_ID }}
+          vault_role_secret: ${{ secrets.NONPROD_VAULT_ROLE_SECRET }}
+          vault_namespace: "businessservices/clink/clink/dev"
+          vault_path: kvsecrets/pipeline-vault
+      
+      - name: 'Login to Docker'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.JFROG_URL }}
+          username: ${{ env.JFROG_ARTIFACTORY_USERNAME }}
+          password: ${{ env.JFROG_ARTIFACTORY_SECRET }}
+          
+      - name: Set date-based tag
+        id: TAG
+        run: echo "TAG=$(date +'%Y%m%d')" >> $GITHUB_ENV
+
+      - name: Build and push Docker image
+        run: |
+          docker build -f Dockerfile --build-arg DOCKER_LOGIN_SERVER=${{ env.JFROG_URL }} \
+          -t ${{ env.JFROG_URL }}/clink-docker-local/clamav-scan:${TAG} ./
+          docker push ${{ env.JFROG_URL }}/clink-docker-local/clamav-scan:${TAG}
+          
