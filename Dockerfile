@@ -1,3 +1,5 @@
+ARG DOCKER_LOGIN_SERVER=useast.jfrog.lexisnexisrisk.com
+
 #0
 FROM maven:latest as builder
 COPY . .
